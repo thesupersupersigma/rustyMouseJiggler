@@ -166,8 +166,8 @@ impl App {
     fn toggle_settings(&self) {
         let on = self.show_settings.check_state() == nwg::CheckBoxState::Checked;
         self.panel.set_visible(on);
-        let h = if on { 175 } else { 40 };
-        self.window.set_size(305 + 16, h + 39);
+        // NWG treats Window sizes as client sizes: 305x170 / 305x44 as in the original layout.
+        self.window.set_size(305, if on { 170 } else { 44 });
     }
 }
 
@@ -189,9 +189,14 @@ fn num_select(parent: &nwg::Frame, out: &mut nwg::NumberSelect, pos: (i32, i32),
 }
 
 pub fn run(init: Init) {
+    unsafe { nwg::set_dpi_awareness() }; // original is SystemAware high-DPI
     nwg::init().expect("failed to init GUI");
     nwg::enable_visual_styles();
-    let _ = nwg::Font::set_global_family("Segoe UI");
+    // Segoe UI 9pt, the WinForms default the original uses.
+    let mut font = nwg::Font::default();
+    if nwg::Font::builder().family("Segoe UI").size_absolute(12).build(&mut font).is_ok() {
+        nwg::Font::set_global_default(Some(font));
+    }
 
     let mut app = App::default();
     // The original clamps out-of-range values to 1 rather than rejecting them.
@@ -201,7 +206,7 @@ pub fn run(init: Init) {
     nwg::Icon::builder().source_bin(Some(ICON)).build(&mut app.icon).unwrap();
     nwg::Window::builder()
         .title("Mouse Jiggler")
-        .size((321, 79))
+        .size((305, 44))
         .flags(if init.minimized { nwg::WindowFlags::WINDOW } else { nwg::WindowFlags::WINDOW | nwg::WindowFlags::VISIBLE })
         .icon(Some(&app.icon))
         .center(true)
@@ -209,10 +214,10 @@ pub fn run(init: Init) {
         .unwrap();
 
     let w = &app.window;
-    nwg::CheckBox::builder().parent(w).text("Jiggling?").position((3, 5)).size((80, 23)).build(&mut app.jiggling).unwrap();
-    nwg::CheckBox::builder().parent(w).text("Settings...").position((88, 5)).size((90, 23)).build(&mut app.show_settings).unwrap();
-    nwg::Button::builder().parent(w).text("?").position((198, 2)).size((40, 23)).build(&mut app.about).unwrap();
-    nwg::Button::builder().parent(w).text("🔽").position((244, 2)).size((40, 23)).build(&mut app.tray_btn).unwrap();
+    nwg::CheckBox::builder().parent(w).text("Jiggling?").position((11, 13)).size((72, 19)).build(&mut app.jiggling).unwrap();
+    nwg::CheckBox::builder().parent(w).text("Settings...").position((96, 13)).size((77, 19)).build(&mut app.show_settings).unwrap();
+    nwg::Button::builder().parent(w).text("?").position((206, 10)).size((40, 23)).build(&mut app.about).unwrap();
+    nwg::Button::builder().parent(w).text("🔽").position((252, 10)).size((40, 23)).build(&mut app.tray_btn).unwrap();
     nwg::Frame::builder().parent(w).position((8, 42)).size((289, 120)).flags(nwg::FrameFlags::VISIBLE).build(&mut app.panel).unwrap();
 
     let p = &app.panel;
@@ -224,13 +229,13 @@ pub fn run(init: Init) {
         .selected_index(Mode::ALL.iter().position(|m| *m == init.mode))
         .build(&mut app.mode)
         .unwrap();
-    nwg::CheckBox::builder().parent(p).text("Randomize?").position((138, 11)).size((90, 23)).build(&mut app.random).unwrap();
-    nwg::Label::builder().parent(p).text(&format!("{period} s")).position((238, 12)).size((45, 23)).h_align(nwg::HTextAlign::Right).build(&mut app.lb_period).unwrap();
-    nwg::Label::builder().parent(p).text("Interval (s):").position((10, 40)).size((120, 23)).build(&mut app.lb_interval).unwrap();
+    nwg::CheckBox::builder().parent(p).text("Randomize?").position((138, 11)).size((90, 19)).build(&mut app.random).unwrap();
+    nwg::Label::builder().parent(p).text(&format!("{period} s")).position((238, 12)).size((45, 15)).h_align(nwg::HTextAlign::Right).build(&mut app.lb_period).unwrap();
+    nwg::Label::builder().parent(p).text("Interval (s):").position((10, 40)).size((65, 15)).build(&mut app.lb_interval).unwrap();
     num_select(p, &mut app.period, (136, 36), period, 10800);
-    nwg::Label::builder().parent(p).text("Distance (multiplier):").position((10, 69)).size((125, 23)).build(&mut app.lb_distance).unwrap();
+    nwg::Label::builder().parent(p).text("Distance (multiplier):").position((10, 69)).size((117, 15)).build(&mut app.lb_distance).unwrap();
     num_select(p, &mut app.distance, (136, 65), distance, 120);
-    nwg::CheckBox::builder().parent(p).text("Minimize on start?").position((138, 94)).size((145, 23)).build(&mut app.minimize).unwrap();
+    nwg::CheckBox::builder().parent(p).text("Minimize on start?").position((138, 94)).size((123, 19)).build(&mut app.minimize).unwrap();
 
     nwg::TrayNotification::builder().parent(&app.window).icon(Some(&app.icon)).tip(Some("Not jiggling the mouse.")).build(&mut app.tray).unwrap();
     nwg::Menu::builder().parent(&app.window).popup(true).text("tray").build(&mut app.menu).unwrap();
