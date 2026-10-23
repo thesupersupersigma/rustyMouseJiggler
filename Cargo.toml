@@ -1,0 +1,19 @@
+[package]
+name = "rusty-mouse-jiggler"
+version = "3.0.0"
+edition = "2021"
+description = "Virtually jiggles the mouse, making the computer seem not idle."
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+native-windows-gui = { version = "1.0.13", features = ["number-select", "tray-notification", "menu", "timer", "message-window"] }
+native-windows-derive = "1.0.5"
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_Console", "Win32_System_Power", "Win32_System_Threading", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging", "Win32_Storage_FileSystem", "Win32_Security"] }
+
+[build-dependencies]
+winresource = "0.1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
