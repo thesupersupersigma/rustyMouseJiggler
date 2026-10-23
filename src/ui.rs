@@ -55,11 +55,36 @@ struct App {
     first_shown: Cell<bool>,
 }
 
+/// NWG's NumberSelect only updates its value from the +/- buttons, so parse and commit what the user typed.
+/// While the box has focus, out-of-range/partial input is left alone; once focus leaves it is clamped or reverted.
 fn int(n: &nwg::NumberSelect) -> i32 {
-    match n.data() {
-        Nsd::Int { value, .. } => value as i32,
-        _ => unreachable!(),
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::GetFocus;
+    use windows_sys::Win32::UI::WindowsAndMessaging::{FindWindowExW, GetWindowTextW, SendMessageW};
+    const EM_GETSEL: u32 = 0x00B0;
+    const EM_SETSEL: u32 = 0x00B1;
+
+    let Nsd::Int { value, step, max, min } = n.data() else { unreachable!() };
+    let Some(parent) = n.handle.hwnd() else { return value as i32 };
+    let edit = unsafe { FindWindowExW(parent as _, std::ptr::null_mut(), windows_sys::w!("Edit"), std::ptr::null()) };
+    if edit.is_null() {
+        return value as i32;
     }
+    let mut buf = [0u16; 32];
+    let len = unsafe { GetWindowTextW(edit, buf.as_mut_ptr(), buf.len() as i32) };
+    let text = String::from_utf16_lossy(&buf[..len.max(0) as usize]);
+    let focused = unsafe { GetFocus() } == edit;
+    let new = match text.trim().parse::<i64>() {
+        Ok(v) if (min..=max).contains(&v) => v,
+        Ok(v) if !focused => v.clamp(min, max),
+        _ if !focused => value,
+        _ => return value as i32,
+    };
+    if new != value || text != new.to_string() {
+        let sel = unsafe { SendMessageW(edit, EM_GETSEL, 0, 0) };
+        n.set_data(Nsd::Int { value: new, step, max, min });
+        unsafe { SendMessageW(edit, EM_SETSEL, sel as usize & 0xFFFF, (sel >> 16) & 0xFFFF) };
+    }
+    new as i32
 }
 
 impl App {
