@@ -3,6 +3,7 @@ use std::fmt;
 use windows_sys::Win32::Foundation::POINT;
 use windows_sys::Win32::System::Power::{SetThreadExecutionState, ES_CONTINUOUS, ES_DISPLAY_REQUIRED, ES_SYSTEM_REQUIRED};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT, INPUT_0, INPUT_MOUSE, MOUSEEVENTF_MOVE, MOUSEINPUT};
+use windows_sys::Win32::System::Threading::{GetCurrentProcess, SetPriorityClass, SetProcessWorkingSetSize, BELOW_NORMAL_PRIORITY_CLASS};
 use windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
@@ -58,6 +59,16 @@ pub fn jiggle(dx: i32, dy: i32) {
         Anonymous: INPUT_0 { mi: MOUSEINPUT { dx, dy, mouseData: 0, dwFlags: MOUSEEVENTF_MOVE, time: 0, dwExtraInfo: 0 } },
     };
     unsafe { SendInput(1, &input, std::mem::size_of::<INPUT>() as i32) };
+}
+
+/// Give the scheduler permission to put us behind everything else on a busy machine.
+pub fn lower_priority() {
+    unsafe { SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS) };
+}
+
+/// Hand idle pages back to the OS; used when the window goes to the tray.
+pub fn trim_memory() {
+    unsafe { SetProcessWorkingSetSize(GetCurrentProcess(), usize::MAX, usize::MAX) };
 }
 
 pub fn cursor_pos() -> Option<(i32, i32)> {

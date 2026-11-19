@@ -1,6 +1,6 @@
 [package]
 name = "rusty-mouse-jiggler"
-version = "3.0.0"
+version = "3.0.1"
 edition = "2021"
 description = "Virtually jiggles the mouse, making the computer seem not idle."
 
@@ -17,3 +17,5 @@ winresource = "0.1"
 opt-level = "z"
 lto = true
 strip = true
+codegen-units = 1
+panic = "abort"

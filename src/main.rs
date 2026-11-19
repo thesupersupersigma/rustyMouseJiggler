@@ -75,6 +75,7 @@ fn main() {
         std::process::exit(1);
     }
 
+    jiggle::lower_priority();
     let s = Settings::load();
     if attached {
         console::free();

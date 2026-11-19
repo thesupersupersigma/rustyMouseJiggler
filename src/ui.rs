@@ -179,6 +179,9 @@ impl App {
     fn to_tray(&self) {
         self.window.set_visible(false);
         self.tray.set_visibility(true);
+        // The settings controls can't change while hidden, so stop polling them.
+        self.poll.stop();
+        jiggle::trim_memory();
     }
 
     fn restore(&self) {
@@ -186,6 +189,7 @@ impl App {
         self.window.set_visible(true);
         self.window.restore();
         self.window.set_focus();
+        self.poll.start();
     }
 
     fn toggle_settings(&self) {
